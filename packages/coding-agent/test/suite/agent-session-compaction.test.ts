@@ -262,6 +262,25 @@ describe("AgentSession compaction characterization", () => {
 		);
 	});
 
+	it("uses the auth-resolved base URL without changing the session model", async () => {
+		const harness = await createHarness();
+		harnesses.push(harness);
+		seedCompactableSession(harness);
+		const sessionBaseUrl = harness.session.model?.baseUrl;
+		const baseUrl = "https://auth-resolved.example.test";
+		vi.spyOn(harness.session.modelRuntime, "getAuth").mockResolvedValue({ auth: { apiKey: "test-key", baseUrl } });
+		harness.setResponses([
+			(_context, _options, _state, requestModel) => {
+				expect(requestModel.baseUrl).toBe(baseUrl);
+				return fauxAssistantMessage("summary");
+			},
+		]);
+
+		await harness.session.compact();
+
+		expect(harness.session.model?.baseUrl).toBe(sessionBaseUrl);
+	});
+
 	it("auto-compacts with a custom streamFn when registry auth is absent", async () => {
 		const harness = await createHarness({ withConfiguredAuth: false });
 		harnesses.push(harness);
